@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>靜月之光 · Threads 流量引擎</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#d4a853">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="流量引擎">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0a0a0f;--surface:#12121a;--card:#1a1a28;--border:#2a2a3a;
+--gold:#d4a853;--gold2:#f0d48a;--purple:#8b5cf6;--cyan:#22d3ee;
+--text:#e8e8f0;--text2:#9898aa;--red:#ef4444;--green:#22c55e;
+}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+.app{max-width:480px;margin:0 auto;padding-bottom:80px}
+
+/* Header */
+.header{padding:20px 16px 12px;text-align:center;position:relative}
+.header::after{content:'';position:absolute;bottom:0;left:16px;right:16px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.logo{font-family:'Playfair Display',serif;font-size:28px;font-weight:900;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.subtitle{font-size:12px;color:var(--text2);letter-spacing:4px;margin-top:2px}
+
+/* Tabs */
+.tabs{display:flex;padding:12px 16px 0;gap:4px;position:sticky;top:0;z-index:10;background:var(--bg)}
+.tab{flex:1;padding:10px 0;text-align:center;font-size:13px;font-weight:500;color:var(--text2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:.2s;background:var(--surface)}
+.tab.active{color:var(--gold);border-color:var(--gold);background:rgba(212,168,83,.08)}
+
+/* Sections */
+.section{display:none;padding:16px}
+.section.active{display:block}
+.section-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.section-desc{font-size:12px;color:var(--text2);margin-bottom:16px}
+
+/* Cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px}
+.card-label{font-size:11px;color:var(--gold);font-weight:700;letter-spacing:2px;margin-bottom:8px;text-transform:uppercase}
+.card h3{font-size:15px;font-weight:700;margin-bottom:6px}
+.card p{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* Keyword chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;transition:.2s;border:1px solid var(--border);background:var(--surface);color:var(--text)}
+.chip:active{transform:scale(.95)}
+.chip.hot{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.08)}
+.chip.trend{border-color:var(--cyan);color:var(--cyan);background:rgba(34,211,238,.08)}
+.chip.niche{border-color:var(--purple);color:var(--purple);background:rgba(139,92,246,.08)}
+
+/* Comment templates */
+.template{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;position:relative}
+.template-tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:4px;margin-bottom:8px;font-weight:700}
+.template-tag.high{background:rgba(34,197,94,.12);color:var(--green)}
+.template-tag.mid{background:rgba(212,168,83,.12);color:var(--gold)}
+.template-text{font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap}
+.copy-btn{position:absolute;top:10px;right:10px;background:var(--card);border:1px solid var(--border);color:var(--gold);font-size:11px;padding:4px 10px;border-radius:6px;cursor:pointer}
+.copy-btn.copied{color:var(--green);border-color:var(--green)}
+
+/* Strategy cards */
+.strat{display:flex;gap:12px;align-items:flex-start;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:10px}
+.strat-num{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--purple));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:var(--bg);flex-shrink:0}
+.strat-content h4{font-size:14px;font-weight:700;margin-bottom:4px}
+.strat-content p{font-size:12px;color:var(--text2);line-height:1.5}
+
+/* Time slots */
+.time-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.time-slot{text-align:center;padding:12px 8px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+.time-slot .hour{font-size:20px;font-weight:900;color:var(--gold)}
+.time-slot .label{font-size:11px;color:var(--text2);margin-top:2px}
+.time-slot .fire{font-size:10px;margin-top:4px}
+.time-slot.peak{border-color:var(--gold);background:rgba(212,168,83,.06)}
+
+/* Daily checklist */
+.checklist{list-style:none}
+.checklist li{display:flex;align-items:center;gap:10px;padding:12px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer;transition:.15s}
+.checklist li:active{background:rgba(212,168,83,.05)}
+.check-box{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.2s}
+.checklist li.done .check-box{background:var(--gold);border-color:var(--gold)}
+.checklist li.done .check-box::after{content:'✓';font-size:13px;color:var(--bg);font-weight:900}
+.checklist li.done{color:var(--text2);text-decoration:line-through}
+
+/* Product selector */
+.product-sel{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.product-sel::-webkit-scrollbar{display:none}
+.p-btn{padding:8px 16px;border-radius:20px;font-size:12px;white-space:nowrap;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;transition:.2s}
+.p-btn.active{background:linear-gradient(135deg,var(--gold),#c4903a);color:var(--bg);border-color:transparent;font-weight:700}
+
+/* Stats bar */
+.stats-bar{display:flex;gap:8px;margin-bottom:16px}
+.stat{flex:1;text-align:center;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+.stat .num{font-size:22px;font-weight:900;color:var(--gold)}
+.stat .lbl{font-size:10px;color:var(--text2);margin-top:2px}
+
+/* Generate button */
+.gen-btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--gold),#c4903a);color:var(--bg);font-size:15px;font-weight:700;border:none;border-radius:10px;cursor:pointer;transition:.2s;margin-top:8px}
+.gen-btn:active{transform:scale(.98);opacity:.9}
+
+/* Scenario selector */
+.scenario-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.sc-chip{padding:6px 12px;border-radius:8px;font-size:11px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:.2s}
+.sc-chip.active{color:var(--gold);border-color:var(--gold);background:rgba(212,168,83,.08)}
+
+/* Toast */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--bg);padding:8px 20px;border-radius:20px;font-size:13px;font-weight:700;opacity:0;transition:.3s;pointer-events:none;z-index:99}
+.toast.show{opacity:1}
+
+/* Bottom nav hint */
+.bottom-hint{position:fixed;bottom:0;left:0;right:0;padding:12px;text-align:center;background:linear-gradient(transparent,var(--bg));pointer-events:none}
+.bottom-hint span{font-size:11px;color:var(--text2)}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.card,.template,.strat{animation:fadeUp .4s ease both}
+.card:nth-child(2){animation-delay:.05s}.card:nth-child(3){animation-delay:.1s}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo">靜月之光</div>
+    <div class="subtitle">THREADS 流量引擎</div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab(0)">🔍 關鍵字</div>
+    <div class="tab" onclick="switchTab(1)">💬 留言模板</div>
+    <div class="tab" onclick="switchTab(2)">📋 每日任務</div>
+    <div class="tab" onclick="switchTab(3)">🧠 策略</div>
+  </div>
+
+  <!-- TAB 0: Keywords -->
+  <div class="section active" id="sec0">
+    <div class="section-title">高轉單關鍵字</div>
+    <div class="section-desc">點擊關鍵字 → 複製 → 貼到 Threads 搜尋</div>
+
+    <div class="product-sel" id="prodSel">
+      <div class="p-btn active" data-cat="all">全部</div>
+      <div class="p-btn" data-cat="crystal">水晶</div>
+      <div class="p-btn" data-cat="meteorite">天鐵</div>
+      <div class="p-btn" data-cat="dragon">龍宮舍利</div>
+      <div class="p-btn" data-cat="divination">命理占卜</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">🔥 高流量 · 搶佔曝光</div>
+      <div class="chips" id="hotChips"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">📈 趨勢話題 · 蹭流量</div>
+      <div class="chips" id="trendChips"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">🎯 精準長尾 · 高轉單</div>
+      <div class="chips" id="nicheChips"></div>
+    </div>
+  </div>
+
+  <!-- TAB 1: Comment Templates -->
+  <div class="section" id="sec1">
+    <div class="section-title">高轉單留言模板</div>
+    <div class="section-desc">選產品 + 情境 → 自動產生留言</div>
+
+    <div class="product-sel" id="prodSel2">
+      <div class="p-btn active" data-cat="crystal">水晶</div>
+      <div class="p-btn" data-cat="meteorite">天鐵</div>
+      <div class="p-btn" data-cat="dragon">龍宮舍利</div>
+    </div>
+
+    <div class="scenario-chips" id="scenarioChips">
+      <div class="sc-chip active" data-sc="ask">求推薦</div>
+      <div class="sc-chip" data-sc="share">曬收藏</div>
+      <div class="sc-chip" data-sc="energy">聊能量</div>
+      <div class="sc-chip" data-sc="newbie">新手問</div>
+      <div class="sc-chip" data-sc="bazi">命理話題</div>
+      <div class="sc-chip" data-sc="mood">心情抒發</div>
+    </div>
+
+    <div id="templateList"></div>
+
+    <button class="gen-btn" onclick="generateTemplates()">🔄 換一批留言</button>
+  </div>
+
+  <!-- TAB 2: Daily Checklist -->
+  <div class="section" id="sec2">
+    <div class="section-title">每日流量任務</div>
+    <div class="section-desc">完成越多 → 曝光越大 → 轉單越多</div>
+
+    <div class="stats-bar">
+      <div class="stat"><div class="num" id="doneCount">0</div><div class="lbl">已完成</div></div>
+      <div class="stat"><div class="num" id="totalCount">12</div><div class="lbl">總任務</div></div>
+      <div class="stat"><div class="num" id="streakCount">0</div><div class="lbl">連續天數</div></div>
+    </div>
+
+    <ul class="checklist" id="checklist"></ul>
+  </div>
+
+  <!-- TAB 3: Strategy -->
+  <div class="section" id="sec3">
+    <div class="section-title">最大流量策略</div>
+    <div class="section-desc">經實證的 Threads 引流轉單方法論</div>
+
+    <div class="card">
+      <div class="card-label">⏰ 黃金發文時段</div>
+      <div class="time-grid">
+        <div class="time-slot peak"><div class="hour">7-9</div><div class="label">早通勤</div><div class="fire">🔥🔥🔥</div></div>
+        <div class="time-slot"><div class="hour">12-13</div><div class="label">午休</div><div class="fire">🔥🔥</div></div>
+        <div class="time-slot peak"><div class="hour">21-23</div><div class="label">睡前</div><div class="fire">🔥🔥🔥</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">🚀 留言引流公式</div>
+      <div id="stratList"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">⚠️ 絕對不要做</div>
+      <p style="font-size:13px;color:var(--text2);line-height:1.8">
+        ❌ 直接貼連結（演算法降觸及）<br>
+        ❌ 留言只寫「推」「+1」（無法引流）<br>
+        ❌ 每則留言都提到自己的品牌<br>
+        ❌ 複製貼上一模一樣的留言<br>
+        ❌ 在別人的負面經驗下推銷<br>
+        ❌ 一次留太多則（像洗版機器人）
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-label">✅ 高轉單留言結構</div>
+      <div id="formulaList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已複製！</div>
+
+<script>
+// ============ DATA ============
+const KEYWORDS = {
+  hot: [
+    {t:'水晶推薦', cat:['crystal','all']},
+    {t:'水晶手鍊', cat:['crystal','all']},
+    {t:'水晶功效', cat:['crystal','all']},
+    {t:'紫水晶', cat:['crystal','all']},
+    {t:'粉晶', cat:['crystal','all']},
+    {t:'黑曜石', cat:['crystal','all']},
+    {t:'白水晶', cat:['crystal','all']},
+    {t:'鈦晶', cat:['crystal','all']},
+    {t:'天鐵', cat:['meteorite','all']},
+    {t:'隕石', cat:['meteorite','all']},
+    {t:'鎳鐵隕石', cat:['meteorite','all']},
+    {t:'龍宮舍利', cat:['dragon','all']},
+    {t:'舍利子', cat:['dragon','all']},
+    {t:'開運', cat:['all']},
+    {t:'能量', cat:['all']},
+    {t:'命理', cat:['divination','all']},
+    {t:'八字', cat:['divination','all']},
+    {t:'紫微斗數', cat:['divination','all']},
+    {t:'塔羅', cat:['divination','all']},
+    {t:'運勢', cat:['divination','all']},
+  ],
+  trend: [
+    {t:'水逆怎麼辦', cat:['all','divination']},
+    {t:'最近運勢差', cat:['all','divination']},
+    {t:'求好運', cat:['all']},
+    {t:'招桃花', cat:['crystal','all']},
+    {t:'招財', cat:['crystal','all']},
+    {t:'防小人', cat:['crystal','all']},
+    {t:'考試順利', cat:['crystal','all']},
+    {t:'面試穿搭', cat:['crystal','all']},
+    {t:'睡眠品質', cat:['crystal','all']},
+    {t:'焦慮ستستستستسا', cat:['crystal','all']},
+    {t:'靜心冥想', cat:['crystal','dragon','all']},
+    {t:'脈輪', cat:['crystal','all']},
+    {t:'修行', cat:['dragon','all']},
+    {t:'磁場', cat:['all']},
+  ],
+  niche: [
+    {t:'水晶怎麼挑', cat:['crystal','all']},
+    {t:'水晶消磁方法', cat:['crystal','all']},
+    {t:'第一次買水晶', cat:['crystal','all']},
+    {t:'水晶真假辨別', cat:['crystal','all']},
+    {t:'天鐵功效', cat:['meteorite','all']},
+    {t:'天鐵佩戴', cat:['meteorite','all']},
+    {t:'天鐵禁忌', cat:['meteorite','all']},
+    {t:'龍宮舍利功效', cat:['dragon','all']},
+    {t:'八字缺什麼', cat:['divination','all']},
+    {t:'五行補什麼', cat:['divination','crystal','all']},
+    {t:'八字選水晶', cat:['divination','crystal','all']},
+    {t:'命理推薦水晶', cat:['divination','crystal','all']},
+    {t:'適合我的水晶', cat:['crystal','all']},
+    {t:'水晶配戴禁忌', cat:['crystal','all']},
+    {t:'生日水晶', cat:['crystal','all']},
+  ]
+};
+
+// Fix typo
+KEYWORDS.trend[9] = {t:'焦慮舒壓', cat:['crystal','all']};
+
+const TEMPLATES = {
+  crystal: {
+    ask: [
+      '我自己是看八字五行去選的，缺什麼補什麼，比亂買有效很多～我戴了鈦晶之後工作上真的有差',
+      '看你的需求耶～如果是想招財鈦晶跟黃水晶都不錯，想穩定情緒紫水晶很推。不過最好還是搭配自己的命盤去選',
+      '推一個方法：先確認自己八字五行缺什麼，再對應去挑水晶，不會亂花錢又戴對的',
+      '我之前也糾結超久，後來發現用命理去配真的最準。比如我五行缺水，就選藍色系水晶，戴了之後感受很明顯',
+      '分享一個我的經驗，與其看別人推什麼就買什麼，不如先了解自己的五行。我有一個很好用的分析工具可以參考',
+    ],
+    share: [
+      '好美！這顆品質真的很好耶～請問是天然的嗎？我自己也在收，最近在研究怎麼用命理搭配',
+      '收藏好厲害！我自己是會按照八字去搭配戴哪條，每天出門前看今日五行來選',
+      '這顆的光澤好漂亮！你有試過用五行去看適不適合自己嗎？效果會更明顯',
+    ],
+    energy: [
+      '真的有感！我自己的經驗是，選對跟自己命盤合的水晶差很多。之前亂戴其實沒什麼感覺',
+      '我覺得水晶的能量要搭配對了才有效，像我五行需要火，戴紅色系水晶感受很強烈',
+      '分享一個心得：消磁之後搭配冥想，效果會更好。另外選跟自己八字合的也是關鍵',
+    ],
+    newbie: [
+      '新手建議先不要衝動買！先了解自己八字五行缺什麼，再去挑對的水晶，省錢又有效',
+      '給你一個順序：1.先算八字看五行 2.對照適合的水晶 3.看預算挑品質。這樣不會踩雷',
+      '第一次買的話建議從白水晶或紫水晶入門，百搭款。但如果想更精準，可以搭配命理去選',
+    ],
+    bazi: [
+      '對！八字看五行真的很實用，我自己就是用這個來選每天戴什麼水晶。缺什麼補什麼的概念',
+      '我覺得紫微搭配八字一起看更準，兩個系統交叉驗證。我有在用一個多維度的分析工具，還滿方便的',
+      '命理選水晶真的是最科學的方法，不是迷信，是統計學。五行跟礦物的對應關係是有根據的',
+    ],
+    mood: [
+      '辛苦了～推薦你可以試試紫水晶，放床頭幫助睡眠，戴身上穩定情緒，我自己低潮期很靠它',
+      '抱抱～如果最近心很亂，黑曜石可以幫忙擋負能量，白水晶淨化磁場。我壓力大的時候都會握著冥想',
+    ]
+  },
+  meteorite: {
+    ask: [
+      '天鐵真的很特別！它是來自外太空的鎳鐵隕石，能量場跟一般水晶不同。適合需要強大保護力跟突破現狀的人',
+      '天鐵我自己有在戴，感覺磁場很強。建議先了解自己的八字適不適合，因為天鐵屬金，不是每個人都適合',
+    ],
+    share: [
+      '天鐵的紋路每塊都不一樣超美的！你這塊維德曼花紋好清晰。我自己也收了幾塊，真的越看越著迷',
+    ],
+    energy: [
+      '天鐵的能量真的跟其他礦石不同等級，畢竟是外太空來的。我自己的經驗是剛開始戴需要適應期',
+    ],
+    newbie: [
+      '天鐵新手注意：1.確認是真的鎳鐵隕石 2.看維德曼花紋 3.用八字確認適不適合戴。天鐵屬金偏強，五行忌金的要小心',
+    ],
+    bazi: [
+      '天鐵五行屬金，八字喜金或缺金的人戴最有效。如果你命盤金太旺反而要避開。建議先算過再決定',
+    ],
+    mood: [
+      '天鐵有種很安定的力量，像是被宇宙保護的感覺。低潮期我會握著冥想，感覺能量場明顯變穩',
+    ]
+  },
+  dragon: {
+    ask: [
+      '龍宮舍利是非常稀有的修行聖物，跟一般水晶完全不同。適合有在修行或靈性成長需求的人',
+    ],
+    share: [
+      '龍宮舍利收藏好難得！每一顆的能量場都不同，你有試過靜坐感受嗎？',
+    ],
+    energy: [
+      '龍宮舍利的能量很細緻，跟水晶那種比較粗的能量不一樣。靜心的時候感受最明顯',
+    ],
+    newbie: [
+      '龍宮舍利比較特殊，建議有一定靈性基礎再入手。可以先從水晶開始培養感受力，之後再進階',
+    ],
+    bazi: [
+      '龍宮舍利比較偏靈性層面，跟八字五行的關聯不像水晶那麼直接，但修行者搭配命盤去選也是可以的',
+    ],
+    mood: [
+      '如果心很亂很浮躁，龍宮舍利的能量可以幫助沉靜下來。建議搭配靜坐使用，效果很好',
+    ]
+  }
+};
+
+const DAILY_TASKS = [
+  {text:'搜尋 3 個高流量關鍵字，各留 1 則言', points: 3},
+  {text:'搜尋 2 個長尾關鍵字，找精準受眾留言', points: 2},
+  {text:'找 3 則「求推薦」貼文留下專業建議', points: 3},
+  {text:'找 2 則「曬收藏」貼文真誠互動', points: 2},
+  {text:'找 1 則命理/八字話題留言導流占卜站', points: 1},
+  {text:'回覆 3 則自己貼文下的留言（養互動率）', points: 3},
+  {text:'追蹤 5 個水晶/命理相關帳號', points: 1},
+  {text:'對 10 則相關貼文按讚（提高演算法推薦）', points: 1},
+  {text:'找 1 則心情抒發貼文給予溫暖回覆', points: 1},
+  {text:'觀察今天哪些留言被按讚或回覆（記錄有效話術）', points: 1},
+  {text:'發 1 則自己的 Threads 貼文', points: 2},
+  {text:'用不同話術測試同一類貼文（A/B 測試）', points: 1},
+];
+
+const STRATEGIES = [
+  {title:'價值先行', desc:'先提供有用資訊（消磁方法、五行知識），建立專業感。別人問「怎麼選水晶」→ 你教方法，自然被追蹤。'},
+  {title:'精準狙擊', desc:'不要亂槍打鳥。搜尋長尾關鍵字（八字選水晶、天鐵功效）找到的人購買意圖更強，轉單率高 3-5 倍。'},
+  {title:'個人檔案就是落地頁', desc:'個人簡介放：一句話定位 + 占卜網站連結。所有留言都是為了讓人點進你的 Profile。'},
+  {title:'留言公式：共鳴→經驗→暗示', desc:'第一句表達共鳴 → 中間分享真實經驗 → 最後暗示你有更多資源（但不直接推銷）。'},
+  {title:'每天 15 分鐘，固定時段', desc:'在黃金時段（7-9AM, 9-11PM）集中留言。演算法偏好活躍時段的互動，觸及率更高。'},
+  {title:'追蹤大帳號的留言區', desc:'找粉絲多的水晶/身心靈帳號，在他們的留言區回覆「別人的問題」。你不是在搶客，是在幫忙解答。'},
+];
+
+const FORMULAS = [
+  {title:'共鳴開場', desc:'「我之前也遇過一樣的問題…」「完全理解你的感覺…」→ 降低防備心'},
+  {title:'經驗佐證', desc:'「後來我試了 X 方法…」「我自己的經驗是…」→ 建立信任感'},
+  {title:'知識輸出', desc:'提供一個對方不知道的小知識 → 展現專業度，讓人想追蹤你'},
+  {title:'軟性導流', desc:'「我有整理過相關資料」「可以看我主頁」→ 不推銷但引導點擊'},
+];
+
+// ============ STATE ============
+let currentTab = 0;
+let currentCat = 'all';
+let currentProduct = 'crystal';
+let currentScenario = 'ask';
+let checkedTasks = JSON.parse(localStorage.getItem('jy_tasks_' + new Date().toDateString()) || '[]');
+let streak = parseInt(localStorage.getItem('jy_streak') || '0');
+
+// ============ RENDER ============
+function switchTab(i) {
+  currentTab = i;
+  document.querySelectorAll('.tab').forEach((t,idx) => t.classList.toggle('active', idx===i));
+  document.querySelectorAll('.section').forEach((s,idx) => s.classList.toggle('active', idx===i));
+}
+
+function renderChips() {
+  ['hot','trend','niche'].forEach(type => {
+    const el = document.getElementById(type+'Chips');
+    const cls = type === 'hot' ? 'hot' : type === 'trend' ? 'trend' : 'niche';
+    const filtered = KEYWORDS[type].filter(k => k.cat.includes(currentCat));
+    el.innerHTML = filtered.map(k => 
+      `<div class="chip ${cls}" onclick="copyText('${k.t}')">${k.t}</div>`
+    ).join('');
+  });
+}
+
+function renderTemplates() {
+  const list = TEMPLATES[currentProduct]?.[currentScenario] || [];
+  const el = document.getElementById('templateList');
+  el.innerHTML = list.map((t, i) => `
+    <div class="template">
+      <span class="template-tag ${i<2?'high':'mid'}">${i<2?'高轉單':'中轉單'}</span>
+      <button class="copy-btn" onclick="copyTemplate(this,'${escape(t)}')">複製</button>
+      <div class="template-text">${t}</div>
+    </div>
+  `).join('');
+}
+
+function generateTemplates() {
+  // Shuffle and re-render
+  const arr = TEMPLATES[currentProduct]?.[currentScenario];
+  if (arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  }
+  renderTemplates();
+  showToast('已重新產生！');
+}
+
+function renderChecklist() {
+  const el = document.getElementById('checklist');
+  el.innerHTML = DAILY_TASKS.map((t, i) => `
+    <li class="${checkedTasks.includes(i)?'done':''}" onclick="toggleTask(${i})">
+      <div class="check-box"></div>
+      <span>${t.text}</span>
+    </li>
+  `).join('');
+  document.getElementById('doneCount').textContent = checkedTasks.length;
+  document.getElementById('streakCount').textContent = streak;
+}
+
+function renderStrategies() {
+  document.getElementById('stratList').innerHTML = STRATEGIES.map((s, i) => `
+    <div class="strat">
+      <div class="strat-num">${i+1}</div>
+      <div class="strat-content"><h4>${s.title}</h4><p>${s.desc}</p></div>
+    </div>
+  `).join('');
+  document.getElementById('formulaList').innerHTML = FORMULAS.map((f, i) => `
+    <div class="strat">
+      <div class="strat-num">${i+1}</div>
+      <div class="strat-content"><h4>${f.title}</h4><p>${f.desc}</p></div>
+    </div>
+  `).join('');
+}
+
+// ============ ACTIONS ============
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => showToast('已複製：' + text));
+}
+
+function copyTemplate(btn, escaped) {
+  const text = unescape(escaped);
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓';
+    btn.classList.add('copied');
+    showToast('留言已複製！去 Threads 貼上');
+    setTimeout(() => { btn.textContent = '複製'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function toggleTask(i) {
+  if (checkedTasks.includes(i)) {
+    checkedTasks = checkedTasks.filter(x => x !== i);
+  } else {
+    checkedTasks.push(i);
+  }
+  localStorage.setItem('jy_tasks_' + new Date().toDateString(), JSON.stringify(checkedTasks));
+  
+  // Check streak
+  if (checkedTasks.length >= 8) {
+    const lastDate = localStorage.getItem('jy_last_complete');
+    const today = new Date().toDateString();
+    if (lastDate !== today) {
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      streak = lastDate === yesterday ? streak + 1 : 1;
+      localStorage.setItem('jy_streak', streak);
+      localStorage.setItem('jy_last_complete', today);
+    }
+  }
+  renderChecklist();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ============ EVENT BINDINGS ============
+document.getElementById('prodSel').addEventListener('click', e => {
+  if (!e.target.dataset.cat) return;
+  currentCat = e.target.dataset.cat;
+  document.querySelectorAll('#prodSel .p-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === currentCat));
+  renderChips();
+});
+
+document.getElementById('prodSel2').addEventListener('click', e => {
+  if (!e.target.dataset.cat) return;
+  currentProduct = e.target.dataset.cat;
+  document.querySelectorAll('#prodSel2 .p-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === currentProduct));
+  renderTemplates();
+});
+
+document.getElementById('scenarioChips').addEventListener('click', e => {
+  if (!e.target.dataset.sc) return;
+  currentScenario = e.target.dataset.sc;
+  document.querySelectorAll('.sc-chip').forEach(b => b.classList.toggle('active', b.dataset.sc === currentScenario));
+  renderTemplates();
+});
+
+// ============ INIT ============
+renderChips();
+renderTemplates();
+renderChecklist();
+renderStrategies();
+
+if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js')}
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "靜月之光 Threads 流量引擎",
+  "short_name": "流量引擎",
+  "description": "Threads 高轉單留言工具",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#d4a853",
+  "orientation": "portrait",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"}
+  ]
+}
